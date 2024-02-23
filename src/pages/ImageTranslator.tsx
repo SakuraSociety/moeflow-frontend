@@ -342,6 +342,7 @@ const ImageTranslator: FC = () => {
           }
         `}
       />
+
       {file && (
         <ImageViewer
           className="ImageTranslator__ImageViewer"
