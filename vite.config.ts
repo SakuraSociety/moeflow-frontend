@@ -23,13 +23,6 @@ export default defineConfig({
             return 'moeflow-components';
           } else if (id.includes('antd')) {
             return 'vendor-antd';
-          } else if (id.includes('node_modules')) {
-            // 让每个插件都打包成独立的文件
-            return id
-              .toString()
-              .split('node_modules/')[1]
-              .split('/')[0]
-              .toString();
           }
           return null;
         },
