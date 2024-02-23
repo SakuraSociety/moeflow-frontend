@@ -7,7 +7,8 @@ import brandJump from '../images/brand/mascot-jump1.png';
 import { FC } from '../interfaces';
 import { useTitle } from '../hooks';
 import apis from '../apis';
-
+import { useSelector } from 'react-redux';
+import { AppState } from '../store';
 /** 首页的属性接口 */
 interface IndexProps {}
 /**
@@ -18,7 +19,7 @@ const Index: FC<IndexProps> = () => {
   useTitle({ suffix: formatMessage({ id: 'site.slogan' }) }); // 设置标题
   const [homepageHtml, setHomepageHtml] = useState<string>();
   const [homepageCss, setHomepageCss] = useState<string>();
-
+  const token = useSelector((state: AppState) => state.user.token);
   useEffect(() => {
     apis
       .getHomepage({})
@@ -81,9 +82,7 @@ const Index: FC<IndexProps> = () => {
         `}
       />
       <Header></Header>
-      <div className="Index__Title">
-        <img src={brandJump} alt="Mascot" />
-      </div>
+      <div className="Index__Title"></div>
       <div className="Index__Footer">{/* 备案号 */}</div>
     </div>
   ) : (

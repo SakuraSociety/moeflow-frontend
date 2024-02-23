@@ -20,11 +20,16 @@ import style from '../style';
 import { toLowerCamelCase } from '../utils';
 import { getCancelToken } from '../utils/api';
 import { useTitle } from '../hooks';
+import { ToastContainer, toast } from 'react-toastify';
+
+import 'react-toastify/dist/ReactToastify.css';
 
 /**
  * 全屏显示的图片翻译器
  */
 const ImageTranslator: FC = () => {
+  const [numUsers, setNumUsers] = useState(0);
+  const [haveMuitUsers, setHaveMuitUsers] = useState(false);
   const { formatMessage } = useIntl();
   const { fileID, targetID } = useParams<{
     fileID: string;
@@ -34,7 +39,7 @@ const ImageTranslator: FC = () => {
   const sources = useSelector((state: AppState) => state.source.sources);
   const sourcesLoading = useSelector((state: AppState) => state.source.loading);
   const focusedSourceID = useSelector(
-    (state: AppState) => state.source.focusedSource.id
+    (state: AppState) => state.source.focusedSource.id,
   );
   const platform = useSelector((state: AppState) => state.site.platform);
   const isMobile = platform === 'mobile';
@@ -45,7 +50,7 @@ const ImageTranslator: FC = () => {
   const sourceListHeightMobile = 200;
   const [settingModalVisible, setSettingModalVisible] = useState(false);
   const currentProject = useSelector(
-    (state: AppState) => state.project.currentProject
+    (state: AppState) => state.project.currentProject,
   );
 
   useTitle({ prefix: file?.name }, [file?.name]); // 设置标题
@@ -57,7 +62,7 @@ const ImageTranslator: FC = () => {
     let nextFocusedSourceIndex = 0;
     if (focusedSourceID) {
       const focusedSourceIndex = sources.findIndex(
-        (source) => source.id === focusedSourceID
+        (source) => source.id === focusedSourceID,
       );
       if (focusedSourceIndex + 1 >= sources.length) {
         nextFocusedSourceIndex = 0;
@@ -71,7 +76,7 @@ const ImageTranslator: FC = () => {
         id: nextFocusedSourceID,
         effects: ['focusInput', 'focusLabel', 'scrollIntoView'],
         noises: ['focusInput', 'focusLabel'],
-      })
+      }),
     );
   };
 
@@ -82,7 +87,7 @@ const ImageTranslator: FC = () => {
     let prevFocusedSourceIndex = sources.length - 1;
     if (focusedSourceID) {
       const focusedSourceIndex = sources.findIndex(
-        (source) => source.id === focusedSourceID
+        (source) => source.id === focusedSourceID,
       );
       if (focusedSourceIndex - 1 < 0) {
         prevFocusedSourceIndex = sources.length - 1;
@@ -96,7 +101,7 @@ const ImageTranslator: FC = () => {
         id: prevFocusedSourceID,
         effects: ['focusInput', 'focusLabel', 'scrollIntoView'],
         noises: ['focusInput', 'focusLabel'],
-      })
+      }),
     );
   };
 
@@ -107,12 +112,12 @@ const ImageTranslator: FC = () => {
       ignoreKeyboardElement: false,
     },
     () => {},
-    [file?.id]
+    [file?.id],
   );
 
   // 快捷键 - 下一个输入框
   const focusNextSourceHotKeyOptions = useSelector(
-    (state: AppState) => state.hotKey.focusNextSource
+    (state: AppState) => state.hotKey.focusNextSource,
   );
   useHotKey(
     {
@@ -120,7 +125,7 @@ const ImageTranslator: FC = () => {
       ...focusNextSourceHotKeyOptions[0],
     },
     focusNextSource,
-    [focusedSourceID, sources.length]
+    [focusedSourceID, sources.length],
   );
   useHotKey(
     {
@@ -128,12 +133,12 @@ const ImageTranslator: FC = () => {
       ...focusNextSourceHotKeyOptions[1],
     },
     focusNextSource,
-    [focusedSourceID, sources.length]
+    [focusedSourceID, sources.length],
   );
 
   // 快捷键 - 上一个输入框
   const focusPrevSourceHotKeyOptions = useSelector(
-    (state: AppState) => state.hotKey.focusPrevSource
+    (state: AppState) => state.hotKey.focusPrevSource,
   );
   useHotKey(
     {
@@ -141,7 +146,7 @@ const ImageTranslator: FC = () => {
       ...focusPrevSourceHotKeyOptions[0],
     },
     focusPrevSource,
-    [focusedSourceID, sources.length]
+    [focusedSourceID, sources.length],
   );
   useHotKey(
     {
@@ -149,7 +154,7 @@ const ImageTranslator: FC = () => {
       ...focusPrevSourceHotKeyOptions[1],
     },
     focusPrevSource,
-    [focusedSourceID, sources.length]
+    [focusedSourceID, sources.length],
   );
 
   // 页面尺寸
@@ -226,7 +231,60 @@ const ImageTranslator: FC = () => {
     return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileID, targetID]);
+  useEffect(() => {
+    // 创建WebSocket连接
+    const connection = new WebSocket(`${process.env.REACT_APP__NUM_BASE_URL}`);
+    // 监听连接成功事件
+    connection.onopen = () => {
+      console.log('People Num WebSocket connected');
+      // 发送页面路径给服务器
+      connection.send(`${fileID}-${targetID}`);
+    };
 
+    // 监听接收到消息事件
+    connection.onmessage = (event) => {
+      const data = event.data;
+      setNumUsers(parseInt(data));
+    };
+
+    // 监听连接关闭事件
+    connection.onclose = () => {
+      console.log('People Num WebSocket closed');
+    };
+
+    // 组件卸载时关闭WebSocket连接
+    return () => {
+      connection.close();
+    };
+  }, [fileID, targetID]);
+  useEffect(() => {
+    // 超过一个人时进行提示
+    if (numUsers > 1) {
+      toast.warn(`当前页面存在${numUsers}人编辑，可能会覆盖您的编辑内容！`, {
+        position: 'bottom-left',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+      setHaveMuitUsers(true);
+    }
+    if (numUsers == 1 && haveMuitUsers) {
+      toast.success('当前并没有其他人编辑，您可以放心编辑内容！', {
+        position: 'bottom-left',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'light',
+      });
+    }
+  }, [numUsers, haveMuitUsers]);
   return (
     <div
       css={css`
@@ -267,6 +325,7 @@ const ImageTranslator: FC = () => {
         }
       `}
     >
+      <ToastContainer />
       <Global
         styles={css`
           html,

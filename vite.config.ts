@@ -23,17 +23,26 @@ export default defineConfig({
             return 'moeflow-components';
           } else if (id.includes('antd')) {
             return 'vendor-antd';
+          } else if (id.includes('node_modules')) {
+            // 让每个插件都打包成独立的文件
+            return id
+              .toString()
+              .split('node_modules/')[1]
+              .split('/')[0]
+              .toString();
           }
           return null;
-        }
-      }
-    }
+        },
+      },
+    },
   },
   define: {
-    'process.env.REACT_APP_BASE_URL': JSON.stringify(process.env.REACT_APP_BASE_URL ?? '/api/')
+    'process.env.REACT_APP_BASE_URL': JSON.stringify(
+      process.env.REACT_APP_BASE_URL ?? 'https://api.fwgxt.top/mf/',
+    ),
   },
   resolve: {
-    alias: {}
+    alias: {},
   },
   plugins: [
     vitePluginImp({
@@ -41,39 +50,31 @@ export default defineConfig({
         {
           // antd 按需导入
           libName: 'antd',
-          style: (name) => `antd/es/${name}/style`
+          style: (name) => `antd/es/${name}/style`,
         },
         {
           // antd-mobile 按需导入
           libName: 'antd-mobile',
-          style: (name) => `antd-mobile/es/${name}/style`
-        }
-      ]
+          style: (name) => `antd-mobile/es/${name}/style`,
+        },
+      ],
     }),
     react({
-      jsxImportSource: '@emotion/core'
+      jsxImportSource: '@emotion/core',
     }),
     visualizer({}),
-    splitVendorChunkPlugin()
+    splitVendorChunkPlugin(),
   ],
   css: {
     preprocessorOptions: {
       less: {
         // 覆盖 antd 的 Less 样式
         javascriptEnabled: true,
-        modifyVars: ({
-          ...antdLessVars, ...antdLessVarsM
-        })
-      }
-    }
+        modifyVars: {
+          ...antdLessVars,
+          ...antdLessVarsM,
+        },
+      },
+    },
   },
-  server: {
-    proxy: {
-      '/api/': {
-        // in local dev, proxy local moeflow-backend server for web app
-        target: 'http://localhost:5000',
-        changeOrigin: true
-      }
-    }
-  }
 });

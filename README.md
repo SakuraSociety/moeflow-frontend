@@ -1,5 +1,115 @@
 # 萌翻[MoeFlow]前端项目
 
+此仓库添加了对在图片编辑时检测是否有多个用户正在编辑，防止用户编辑的内容被覆盖
+
+![image](https://github.com/HoubunSOP/moeflow-frontend/assets/69132853/609fae77-57d8-43cf-9024-828c710a33f9)
+
+使用此仓库需要启动一个特殊的服务端（十分轻量），而不是使用萌翻的服务端（防止过多破坏 docker 中的镜像而不好修改文件）
+
+```js
+const WebSocket = require('websocket').server;
+const http = require('http');
+
+const server = http.createServer((request, response) => {
+  // 处理HTTP请求
+});
+
+server.listen(8765, () => {
+  console.log('WebSocket Server is listening on port 8765');
+});
+
+// 创建WebSocket服务器
+const wsServer = new WebSocket({
+  httpServer: server,
+});
+
+// 用于存储连接的客户端
+const clients = [];
+
+// 用于存储每个页面的连接人数
+const pageVisitorCounts = new Map();
+
+// 监听WebSocket连接事件
+wsServer.on('request', (request) => {
+  const connection = request.accept(null, request.origin);
+
+  // 将连接的客户端添加到列表中
+  clients.push(connection);
+
+  // 监听接收到消息事件
+  connection.on('message', (message) => {
+    if (message.type === 'utf8') {
+      const data = message.utf8Data;
+
+      // 在这里处理接收到的消息
+      // 根据你的需求进行相应的操作
+
+      // 假设接收到的是独一无二的字符串
+      const uniqueString = data;
+
+      // 检查页面是否在计数器中，如果不存在则初始化为0
+      if (!pageVisitorCounts.has(uniqueString)) {
+        pageVisitorCounts.set(uniqueString, 0);
+      }
+
+      // 增加页面连接人数
+      const currentCount = pageVisitorCounts.get(uniqueString) + 1;
+      pageVisitorCounts.set(uniqueString, currentCount);
+
+      // 发送当前连接人数给客户端
+      connection.sendUTF(currentCount.toString());
+      // 更新其他客户端的连接人数
+      clients.forEach((client) => {
+        pageVisitorCounts.forEach((count, uniqueString) => {
+          client.sendUTF(count.toString());
+        });
+      });
+    }
+  });
+
+  // 监听客户端关闭连接事件
+  connection.on('close', () => {
+    // 从列表中移除关闭的客户端
+    const index = clients.indexOf(connection);
+    clients.splice(index, 1);
+
+    // 减少页面连接人数
+    pageVisitorCounts.forEach((count, uniqueString) => {
+      if (count > 0) {
+        pageVisitorCounts.set(uniqueString, count - 1);
+      }
+    });
+
+    // 更新其他客户端的连接人数
+    clients.forEach((client) => {
+      pageVisitorCounts.forEach((count, uniqueString) => {
+        client.sendUTF(count.toString());
+      });
+    });
+  });
+});
+```
+
+在服务器中启动上方的服务端，您可以使用 pm2/screen 等可以挂后台的程序进行，也可以直接运行 `node [脚本名].js`
+
+比如 pm2 出现了下面的类似内容就是已经成功了
+
+```bash
+[PM2] Spawning PM2 daemon with pm2_home=/root/.pm2
+[PM2] PM2 Successfully daemonized
+[PM2] Starting /www/wwwroot/moeflow-deploy/server.js in fork_mode (1 instance)
+[PM2] Done.
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │├────┼───────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤│ 0  │ server    │ default     │ N/A     │ fork    │ 254028   │ 0s     │ 0    │ online    │ 0%       │ 46.9mb   │ root     │ disabled │└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+```
+
+然后请修改本仓库中的 `.env.local`中的 `REACT_APP__NUM_BASE_URL`替换为你服务器中的内容，如果您没有修改任何服务端脚本的内容并且没有进行反向代理的话可以填写为 `你的服务器IP:8765`
+
+请注意不要添加任何 http 协议头（例如 ` http://``https:// `）
+
+而是添加 ws 协议头（非 SSL：`ws://` SSL:`wss://`）
+
+然后在编译此版本后进入 docker 容器中的 build 文件夹中直接替换文件即可
+
 **由于部分API代码调整，请更新萌翻后端到对应 Version.1.0.1 后继续使用。**
 
 ## 技术栈
