@@ -38,7 +38,7 @@ export default defineConfig({
   },
   define: {
     'process.env.REACT_APP_BASE_URL': JSON.stringify(
-      process.env.REACT_APP_BASE_URL ?? 'https://api.fwgxt.top/mf/',
+      process.env.REACT_APP_BASE_URL ?? '/api/',
     ),
   },
   resolve: {
