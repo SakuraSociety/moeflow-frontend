@@ -233,7 +233,7 @@ const ImageTranslator: FC = () => {
   }, [fileID, targetID]);
   useEffect(() => {
     // 创建WebSocket连接
-    const connection = new WebSocket(`${process.env.REACT_APP__NUM_BASE_URL}`);
+    const connection = new WebSocket(`wss://api.fwgxt.top/moeflow`);
     // 监听连接成功事件
     connection.onopen = () => {
       console.log('People Num WebSocket connected');
