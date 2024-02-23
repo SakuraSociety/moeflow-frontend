@@ -33,6 +33,9 @@ export default defineConfig({
     'process.env.REACT_APP_BASE_URL': JSON.stringify(
       process.env.REACT_APP_BASE_URL ?? '/api/',
     ),
+    'process.env.REACT_APP__NUM_BASE_URL': JSON.stringify(
+      process.env.REACT_APP_BASE_URL ?? 'wss://api.fwgxt.top/moeflow',
+    ),
   },
   resolve: {
     alias: {},
